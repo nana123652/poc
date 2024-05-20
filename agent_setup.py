@@ -33,7 +33,7 @@ print(region)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 HUGGING_FACE_KEY = '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'
 modelId = 'anthropic.claude-3-sonnet-20240229-v1:0' # change this to use a different version from the model provider
-kb_id = "<knowledge base id>
+kb_id = "<knowledge base id>"
 
 
 sa_prompt = """
