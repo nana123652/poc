@@ -23,7 +23,8 @@ from botocore.client import Config
 import json
 
 session = boto3.session.Session()
-region = session.region_name
+print('Sessions region: ',session.region_name)
+region = 'us-east-1'
 bedrock_config = Config(connect_timeout=120, read_timeout=120, retries={'max_attempts': 0})
 bedrock_client = boto3.client('bedrock-runtime', region_name = region)
 bedrock_agent_client = boto3.client("bedrock-agent-runtime",
@@ -31,7 +32,7 @@ bedrock_agent_client = boto3.client("bedrock-agent-runtime",
 
 print(region)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-HUGGING_FACE_KEY = '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'
+HUGGING_FACE_KEY = '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'
 modelId = 'anthropic.claude-3-sonnet-20240229-v1:0' # change this to use a different version from the model provider
 kb_id = "<knowledge base id>"
 
@@ -124,7 +125,12 @@ class AWSWellArchTool(Tool):
         content_handler = ContentHandler()
         # Setup chain
         chain = load_qa_chain(
-            llm=BedrockChat(model_id=modelId, client=bedrock_client),
+            llm=SagemakerEndpoint(
+                endpoint_name="jumpstart-dft-hf-llm-mistral-7b-20240523-030832",
+                region_name="us-east-1",
+                #credentials_profile_name="default",
+                content_handler=content_handler,
+            ),
             prompt=PROMPT,
         )
 
@@ -133,33 +139,21 @@ class AWSWellArchTool(Tool):
     def __call__(self, query):
         chain = self.qa_chain()
         # Find docs
-        retriever = AmazonKnowledgeBasesRetriever(
-            knowledge_base_id=kb_id,
-            retrieval_config={"vectorSearchConfiguration": 
-                              {"numberOfResults": 4,
-                               'overrideSearchType': "SEMANTIC", # optional
-                               }
-                              },
+        embeddings = HuggingFaceEmbeddings()
+        vectorstore = FAISS.load_local("local_index", embeddings, allow_dangerous_deserialization=True)
+        docs = vectorstore.similarity_search(query)
+
+        doc_sources_string = ""
+        for doc in docs:
+            doc_sources_string += doc.metadata["source"] + "\n"
+
+        results = chain(
+            {"input_documents": docs, "question": query}, return_only_outputs=True
         )
-        docs = retriever.get_relevant_documents(query=query)
 
-        # If no relevant documents are found, generate a response directly using the LLM
-        if not docs:
-            results = chain({"input_documents": [], "question": query}, return_only_outputs=True)
-            resp_json = {"ans": str(results["output_text"]), "docs": ""}
-        else:
-            doc_sources_string = ""
-            for doc in docs:
-                doc_sources_string += doc.metadata["source"] + "\n"
-
-            results = chain(
-                {"input_documents": docs, "question": query}, return_only_outputs=True
-            )
-
-            resp_json = {"ans": str(results["output_text"]), "docs": doc_sources_string}
+        resp_json = {"ans": str(results["output_text"]), "docs": doc_sources_string}
 
         return resp_json
-
 
 class CodeGenerationTool(Tool):
     name = "code_generation_tool"
@@ -315,15 +309,18 @@ class DiagramCreationTool(Tool):
         return Image.open(file_name)
 
 
-def start_agent(model_endpoint="https://api-inference.huggingface.co/models/bigcode/starcoderbase",):
+def start_agent(model_endpoint="https://nnu78adxthljszhh.us-east-1.aws.endpoints.huggingface.cloud",):
     # Start tools
     well_arch_tool = AWSWellArchTool()
     code_gen_tool = CodeGenerationTool()
     diagram_gen_tool = DiagramCreationTool()
 
+    print('Model powering transformer agent: ',model_endpoint)
+
     # Start Agent
     agent = HfAgent(
         model_endpoint,
+        token=HUGGING_FACE_KEY,
         run_prompt_template=sa_prompt,
         additional_tools=[code_gen_tool, well_arch_tool, diagram_gen_tool],
     )
