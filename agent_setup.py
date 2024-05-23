@@ -81,7 +81,45 @@ Task: "<<prompt>>"
 
 I will use the following
 """
+class AWSCatalogTool(Tool):
+    name = "aws_catalog_tool"
+    description = "Use this tool to run an AWS Service Catalog product."
 
+    def __init__(self,product_name: str):
+        self.client = boto3.client('servicecatalog',region_name='us-east-1')
+        product = self.client.search_products(Name=product_name)['ProductViewSummaryList'][0]
+        response = self.client.provision_product(ProductId=product['ProductId'])
+        if response['RecordOutputs']:
+            print("Product provisioned successfully.")
+            print("Product details:")
+            for output in response['RecordOutputs']:
+                print(f"{output['OutputKey']} = {output['OutputValue']}")
+        else:
+            print("Error provisioning product.")
+        #response = self.client.execute_product(
+         #   ProductId=product_id,
+          #  ProvisioningArtifactId='your_provisioning_artifact_id',
+          #  AcceptLanguage='en'
+        # )
+        #print(response)
+        return response
+    #def run(self, product_name: str):
+     #   product = self.client.search_products(Name=product_name)['ProductViewSummaryList'][0]
+      #  response = self.client.provision_product(ProductId=product['ProductId'])
+       # if response['RecordOutputs']:
+        #    print("Product provisioned successfully.")
+      #   #   print("Product details:")
+       #     for output in response['RecordOutputs']:
+    #            print(f"{output['OutputKey']} = {output['OutputValue']}")
+     #   else:
+         #   print("Error provisioning product.")
+        ##response = self.client.execute_product(
+         #   ProductId=product_id,
+          #  ProvisioningArtifactId='your_provisioning_artifact_id',
+          #  AcceptLanguage='en'
+    # )
+        #print(response)
+        #return response
 
 class AWSWellArchTool(Tool):
     name = "well_architected_tool"
@@ -120,17 +158,24 @@ class AWSWellArchTool(Tool):
 
             def transform_output(self, output: bytes) -> str:
                 response_json = json.loads(output.read().decode("utf-8"))
+                print(response_json)
                 return response_json["completions"][0]["data"]["text"]
-
+        
+        inference_component_name='meta-textgeneration-llama-3-8b-20240523-055253'
         content_handler = ContentHandler()
-        # Setup chain
-        chain = load_qa_chain(
-            llm=SagemakerEndpoint(
-                endpoint_name="jumpstart-dft-hf-llm-mistral-7b-20240523-030832",
+        llm=SagemakerEndpoint(
+                endpoint_name="jumpstart-dft-meta-textgeneration-l-20240523-055253",
                 region_name="us-east-1",
+                endpoint_kwargs={"InferenceComponentName":inference_component_name}, 
+                #endpoint_kwargs={f'InferenceComponentName": {inference_component_name}'},
+                #endpoint_kwargs={"CustomAttributes": "accept_eula=true,InferenceComponentName="+inference_component_name },
                 #credentials_profile_name="default",
                 content_handler=content_handler,
-            ),
+        )
+        print(str(llm.endpoint_kwargs))
+        # Setup chain
+        chain = load_qa_chain(
+            llm,
             prompt=PROMPT,
         )
 
@@ -163,12 +208,14 @@ class CodeGenerationTool(Tool):
     outputs = ["text"]
 
     def call_endpoint(self, payload):
-        API_URL = "https://api-inference.huggingface.co/models/bigcode/starcoder"
-        headers = {"Authorization": f"Bearer {HUGGING_FACE_KEY}"}
+        API_URL = "https://nnu78adxthljszhh.us-east-1.aws.endpoints.huggingface.cloud"
+        headers = {"Authorization": f"Bearer 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"}
         response = requests.post(API_URL, headers=headers, json=payload)
+        #print('ssss...........: ', response)
         return response.json()
 
     def __call__(self, prompt):
+        print(f'here pomt: {prompt}')
         output = self.call_endpoint(
             {
                 "inputs": prompt,
@@ -180,7 +227,10 @@ class CodeGenerationTool(Tool):
                 },
             }
         )
+        print(output)
         generated_text = output[0]["generated_text"]
+
+        #print(f'generated_code: {generated_text}')
         # Clean up code
         lines = generated_text.split("\n")
         updated_lines = []
@@ -314,15 +364,16 @@ def start_agent(model_endpoint="https://nnu78adxthljszhh.us-east-1.aws.endpoints
     well_arch_tool = AWSWellArchTool()
     code_gen_tool = CodeGenerationTool()
     diagram_gen_tool = DiagramCreationTool()
-
+    aws_catalog= AWSCatalogTool()
     print('Model powering transformer agent: ',model_endpoint)
 
     # Start Agent
     agent = HfAgent(
         model_endpoint,
         token=HUGGING_FACE_KEY,
-        run_prompt_template=sa_prompt,
-        additional_tools=[code_gen_tool, well_arch_tool, diagram_gen_tool],
+        #run_prompt_template=sa_prompt,
+        #additional_tools=[code_gen_tool, well_arch_tool, diagram_gen_tool],
+        additional_tools=[aws_catalog],
     )
 
     default_tools = [

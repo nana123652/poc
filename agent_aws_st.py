@@ -58,9 +58,10 @@ def app() -> None:
         with st.spinner("Generating..."):
             answer = agent.run(query)
 
-            if type(answer) == PIL.PngImagePlugin.PngImageFile:
-                st.image(answer)
-            elif type(answer) == dict:
+            print(type(answer))
+            #if type(answer) == PIL.PngImagePlugin.PngImageFile:
+              #  st.image(answer)
+            if type(answer) == dict:
                 st.markdown(answer["ans"])
                 docs = answer["docs"].split("\n")
 
