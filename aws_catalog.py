@@ -4,6 +4,12 @@ from transformers import Tool
 
 
 class AWSCatalogTool:
+    name = "aws_catalog_tool"
+    description = "Use this tool to provision AWS resources in service catalog"
+    inputs = ["text"]
+    outputs = ["text"]
+
+
     def __init__(self):
         self.client = boto3.client('servicecatalog', region_name='us-east-1')
         self.product_id = None
