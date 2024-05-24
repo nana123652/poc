@@ -23,6 +23,9 @@ import pprint
 from botocore.client import Config
 import json
 from model_downloads import HFModelDownloadsTool
+from aws_catalog import AWSCatalogTool
+from sagemaker_app import SageMakerRunningInstancesTool
+
 
 session = boto3.session.Session()
 print('Sessions region: ',session.region_name)
@@ -83,93 +86,7 @@ Task: "<<prompt>>"
 
 I will use the following
 """
-class AWSCatalogTool(Tool):
-    name = "aws_catalog_tool"
-    description = "Use this tool to run an AWS Service Catalog product."
-    client = boto3.client('servicecatalog',region_name='us-east-1')
-    def get_provisioned_product_status(product_id):
-        try:
-            response = client.describe_provisioned_status(Id=product_id)
-            return response['ProvisionedProductDetail']['Status']
-        except Exception as e:
-             print(f'An error occured while getting status: {str(e)}')
-             return None
 
-    def wait_for_status(product_id, target_status, max_attempts=10, interval_seconds=10):
-        print(f'target reponse to check: {product_id}')
-        attempts= 0
-        while attempts < max_attempts:
-            status = get_provisioned_product_status(product_id)
-            print(f"status: {status}")
-            if status == target_status:
-                print(f'Provisioned Product reached target status: {status}')
-                return f'Provisioned Product reached target status: {status}'
-                break
-            elif status == 'FAILED':
-                print(f'Provisioned Product failed with status: {status}')
-                return f'Provisioned Product failed with status: {status}'
-                break
-            else:
-                print(f"Current status: {status}. Waiting for {target_status}...")
-                return f"Current status: {status}. Waiting for {target_status}..."
-                time.sleep(interval_seconds)
-                attempt += 1
-        else:
-            print(f"Max attempts reached. Provisioned Product status: {status}")
-            return f"Max attempts reached. Provisioned Product status: {status}"
-
-
-
-    def __call__(self,product_name: str):
-        try:
-            self.client = boto3.client('servicecatalog',region_name='us-east-1')
-            product = self.client.search_products(Filters={'FullTextSearch': [product_name]})['ProductViewSummaries'][0]
-            print(product)
-            response = self.client.provision_product(ProductId=product['ProductId'],ProvisionedProductName='37sssieersrq43444ss5',ProvisioningArtifactId='pa-mhftvd4y7zkdg')
-            print(response)
-            self.product_id=response['RecordDetail']['ProvisionedProductId']
-            self.target_status = 'COMPLETED'
-            print(f"product id: {product_id} | target_status: {target_status} -- pass to wait_for_status func ")
-            status_response = wait_for_status(self.product_id,self.target_status)
-            #if response['RecordDetail']:
-             #   print("Product provisioned successfully.")
-              #  print("Product details:")
-                #for output in response['RecordDetail']:
-                    #print(f"{output['OutputKey']} = {output['OutputValue']}")
-            #else:
-             #   response = "Provisioning failed"
-              #  print("Error provisioning product.")i
-            print(status_response)
-            return status_response
-            
-        except Exception as e:
-            print(f'An error occured: {str(e)}')
-            response= f'An error occured: {str(e)}'
-            return response
-        #response = self.client.execute_product(
-         #   ProductId=product_id,
-          #  ProvisioningArtifactId='your_provisioning_artifact_id',
-          #  AcceptLanguage='en'
-        # )
-        #print(response)
-        #return response
-    #def run(self, product_name: str):
-     #   product = self.client.search_products(Name=product_name)['ProductViewSummaryList'][0]
-      #  response = self.client.provision_product(ProductId=product['ProductId'])
-       # if response['RecordOutputs']:
-        #    print("Product provisioned successfully.")
-      #   #   print("Product details:")
-       #     for output in response['RecordOutputs']:
-    #            print(f"{output['OutputKey']} = {output['OutputValue']}")
-     #   else:
-         #   print("Error provisioning product.")
-        ##response = self.client.execute_product(
-         #   ProductId=product_id,
-          #  ProvisioningArtifactId='your_provisioning_artifact_id',
-          #  AcceptLanguage='en'
-    # )
-        #print(response)
-        #return response
 
 class AWSWellArchTool(Tool):
     name = "well_architected_tool"
@@ -416,6 +333,7 @@ def start_agent(model_endpoint="https://nnu78adxthljszhh.us-east-1.aws.endpoints
     diagram_gen_tool = DiagramCreationTool()
     aws_catalog= AWSCatalogTool()
     model_download = HFModelDownloadsTool()
+    sagemaker_app = SageMakerRunningInstancesTool
     print('Model powering transformer agent: ',model_endpoint)
 
     # Start Agent
@@ -424,7 +342,7 @@ def start_agent(model_endpoint="https://nnu78adxthljszhh.us-east-1.aws.endpoints
         token=HUGGING_FACE_KEY,
         #run_prompt_template=sa_prompt,
         #additional_tools=[code_gen_tool, well_arch_tool, diagram_gen_tool],
-        additional_tools=[aws_catalog,model_download],
+        additional_tools=[aws_catalog,model_download,sagemaker_app],
     )
 
     default_tools = [
