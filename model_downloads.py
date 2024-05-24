@@ -16,6 +16,6 @@ class HFModelDownloadsTool(Tool):
     }
     output_type = "text"
 
-    def forward(self, task: str):
+    def __call__(self, task: str):
         model = next(iter(list_models(filter=task, sort="downloads", direction=-1)))
         return model.id

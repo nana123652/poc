@@ -59,18 +59,21 @@ def app() -> None:
             answer = agent.run(query)
 
             print(type(answer))
+            print(answer)
             #if type(answer) == PIL.PngImagePlugin.PngImageFile:
               #  st.image(answer)
-            if type(answer) == dict:
-                st.markdown(answer["ans"])
-                docs = answer["docs"].split("\n")
+            #if type(answer) == dict:
+             #   st.markdown(answer["ans"])
+              #  docs = answer["docs"].split("\n")
 
-                with st.expander("Resources"):
-                    for doc in docs:
-                        st.write(doc)
-            else:
-                st.code(answer)
+               # with st.expander("Resources"):
+                #    for doc in docs:
+                 #       st.write(doc)
+           # else:
+            #    st.code(answer)
+           
 
+            st.write(answer)
 
 def main() -> None:
     """
