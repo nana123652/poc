@@ -3,7 +3,7 @@ import pandas as pd
 from transformers import Tool
 
 
-class SageMakerRunningInstancesTool:
+class SageMakerRunningInstancesTool(Tool):
       # Attributes
     name = "sagemaker_running_instances"
     description = "A tool to retrieve information about running SageMaker instances"
@@ -14,6 +14,7 @@ class SageMakerRunningInstancesTool:
         self.client = boto3.client('sagemaker')
         self.account_id = boto3.client("sts").get_caller_identity()["Account"]
         self.running_instances = []
+        self.repo_id= None
 
     def get_running_instances(self):
         response_apps = self.client.list_apps(MaxResults=10, SortOrder='Ascending', SortBy='CreationTime')
@@ -57,7 +58,7 @@ class SageMakerRunningInstancesTool:
         self.get_running_instances()
         return pd.DataFrame(self.running_instances)
 
-    def __call__(self):
+    def __call__(self,task:str):
         return get_dataframe()
   
 
