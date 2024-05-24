@@ -5,7 +5,7 @@ from transformers import Tool
 
 class SageMakerRunningInstancesTool:
       # Attributes
-    name = "SageMaker Running Instances Tool"
+    name = "sagemaker_running_instances"
     description = "A tool to retrieve information about running SageMaker instances"
     inputs = "None (no parameters required)"
     outputs = "Pandas DataFrame containing details of running SageMaker instances"
