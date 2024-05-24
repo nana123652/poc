@@ -8,7 +8,7 @@ class SageMakerRunningInstancesTool(Tool):
     name = "sagemaker_running_instances"
     description = "A tool to retrieve information about running SageMaker instances"
     inputs = "None (no parameters required)"
-    outputs = "Pandas DataFrame containing details of running SageMaker instances"
+    output_type = "Pandas DataFrame containing details of running SageMaker instances"
 
     def __init__(self):
         self.client = boto3.client('sagemaker')
