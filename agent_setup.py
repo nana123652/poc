@@ -333,7 +333,7 @@ def start_agent(model_endpoint="https://nnu78adxthljszhh.us-east-1.aws.endpoints
     diagram_gen_tool = DiagramCreationTool()
     aws_catalog= AWSCatalogTool()
     model_download = HFModelDownloadsTool()
-    sagemaker_app = SageMakerRunningInstancesTool
+    sagemaker_app = SageMakerRunningInstancesTool()
     print('Model powering transformer agent: ',model_endpoint)
 
     # Start Agent
