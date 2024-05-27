@@ -137,11 +137,15 @@ class AWSWellArchTool(Tool):
             })
             response = bedrock_client.invoke_model(body=body, modelId=bedrock_model_id, accept='application/json', contentType='application/json') #send the payload to Bedrock
             response_body = json.loads(response.get('body').read()) # read the response
-            print(response_body)
+            #print(response_body)
             response_text = response_body.get("completions")[0].get("data").get("text") #extract the text from the JSON response
-
+            print("...................................................................")
+            print(response_text)
             
             resp_json = {"ans": str(response_text), "docs": doc_sources_string}
+            print("......................start..............................")
+            print(resp_json)
+            print("......................end................................")
             return resp_json
 
         except (BotoCoreError, ClientError) as error:

@@ -33,6 +33,7 @@ def display_response(answer) -> None:
         answer: The agent's response
     """
     print(type(answer))
+    print(answer)
     if isinstance(answer, str):
         print("writing answer")
         st.write(answer)  # Display as plain text
@@ -72,12 +73,13 @@ def app() -> None:
         # Generate agent's response
         with st.spinner("Generating..."):
             answer = agent.run(chat_input)
-
+            print("enddss")
+            print(answer)
             # Append agent's response to chat history
             st.session_state.chat_history.append({"role": "AI Agent", "content": answer})
 
         # Display the response
-        display_response(answer)
+        display_response(answer["ans"])
 
     # Show chat history on the right side
     st.sidebar.subheader("Chat History")
