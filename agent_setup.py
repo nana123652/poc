@@ -25,9 +25,10 @@ import json
 from model_downloads import HFModelDownloadsTool
 from aws_catalog import AWSCatalogTool
 from sagemaker_app import SageMakerRunningInstancesTool
-from langchain.llms import Bedrock, ConversationChain
-from langchain.llms.memory import ConversationBufferMemory
-from langchain.llms.callbacks import StreamingStdOutCallbackHandler
+import boto3
+import os
+import json
+from botocore.exceptions import BotoCoreError, ClientError
 
 session = boto3.session.Session()
 print('Sessions region: ',session.region_name)
@@ -98,34 +99,54 @@ class AWSWellArchTool(Tool):
     inputs = ["text"]
     outputs = ["text"]
 
-    def __call__(self, query):
-        custom_llm = Bedrock(
-            credentials_profile_name="bedrock-admin",
-            provider="cohere",
-            model_id="<Custom model ARN>",  # ARN like 'arn:aws:bedrock:...' obtained via provisioning the custom model
-            model_kwargs={"temperature": 1},
-            streaming=True,
-            callbacks=[StreamingStdOutCallbackHandler()],
-        )
+    def __init__(self):
+        self.client = boto3.client('bedrock-runtime', region_name='us-east-1')
 
+    def qa_chain(self, query):
         # Find docs
         embeddings = HuggingFaceEmbeddings()
         vectorstore = FAISS.load_local("local_index", embeddings, allow_dangerous_deserialization=True)
-        docs = vectorstore.similarity_search(query)
+        docs = vectorstore.nearest(embeddings.embed(query), n=5)
 
         doc_sources_string = ""
         for doc in docs:
             doc_sources_string += doc.metadata["source"] + "\n"
 
-        conversation = ConversationChain(
-            llm=custom_llm, verbose=True, memory=ConversationBufferMemory()
+        # Prepare the prompt
+        prompt_template = """Use the following pieces of context to answer the question at the end.
+        {context}
+        Question: {question}
+        Answer:"""
+        prompt = PromptTemplate(
+            template=prompt_template, input_variables=["context", "question"]
         )
-        
-        result = conversation.predict(input={"input_documents": docs, "question": query})
-        
-        resp_json = {"ans": str(result), "docs": doc_sources_string}
-        
-        return resp_json
+        prepared_prompt = prompt.format(context=doc_sources_string, question=query)
+
+        # Invoke the Bedrock model
+        try:
+            body = json.dumps({
+                "prompt": prepared_prompt, #AI21
+                "maxTokens": 1024, 
+                "temperature": 0, 
+                "topP": 0.5, 
+                "stopSequences": [], 
+                "countPenalty": {"scale": 0 }, 
+                "presencePenalty": {"scale": 0 }, 
+                "frequencyPenalty": {"scale": 0 }
+            })
+            response = bedrock.invoke_model(body=body, modelId=bedrock_model_id, accept='application/json', contentType='application/json') #send the payload to Bedrock
+            response_body = json.loads(response.get('body').read()) # read the response
+            response_text = response_body.get("completions")[0].get("data").get("text") #extract the text from the JSON response
+
+            return response_text
+        except (BotoCoreError, ClientError) as error:
+            print(error)
+            raise error
+
+    def __call__(self, query):
+        result = self.qa_chain(query)
+        return {"ans": result}
+
 
 class CodeGenerationTool(Tool):
     name = "code_generation_tool"
