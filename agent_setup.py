@@ -340,9 +340,9 @@ def start_agent(model_endpoint="https://nnu78adxthljszhh.us-east-1.aws.endpoints
     agent = HfAgent(
         model_endpoint,
         token=HUGGING_FACE_KEY,
-        #run_prompt_template=sa_prompt,
+        run_prompt_template=sa_prompt,
         #additional_tools=[code_gen_tool, well_arch_tool, diagram_gen_tool],
-        additional_tools=[aws_catalog,model_download,sagemaker_app],
+        additional_tools=[well_arch_tool,aws_catalog,model_download,sagemaker_app],
     )
 
     default_tools = [
@@ -366,6 +366,7 @@ def start_agent(model_endpoint="https://nnu78adxthljszhh.us-east-1.aws.endpoints
     for tool in default_tools:
         try:
             del agent.toolbox[tool]
+            #continue
         except:
             continue
 
