@@ -140,7 +140,10 @@ class AWSWellArchTool(Tool):
             print(response_body)
             response_text = response_body.get("completions")[0].get("data").get("text") #extract the text from the JSON response
 
-            return response_text
+            
+            resp_json = {"ans": str(response_text), "docs": doc_sources_string}
+            return resp_json
+
         except (BotoCoreError, ClientError) as error:
             print(error)
             raise error
@@ -354,4 +357,3 @@ def start_agent(model_endpoint="https://nnu78adxthljszhh.us-east-1.aws.endpoints
             continue
 
     return agent
-
