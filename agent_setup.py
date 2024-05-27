@@ -25,7 +25,9 @@ import json
 from model_downloads import HFModelDownloadsTool
 from aws_catalog import AWSCatalogTool
 from sagemaker_app import SageMakerRunningInstancesTool
-
+from langchain.llms import Bedrock, ConversationChain
+from langchain.llms.memory import ConversationBufferMemory
+from langchain.llms.callbacks import StreamingStdOutCallbackHandler
 
 session = boto3.session.Session()
 print('Sessions region: ',session.region_name)
@@ -88,68 +90,24 @@ I will use the following
 """
 
 
+
+
 class AWSWellArchTool(Tool):
     name = "well_architected_tool"
     description = "Use this tool for any AWS related question to help customers understand best practices on building on AWS. It will use the relevant context from the AWS Well-Architected Framework to answer the customer's query. The input is the customer's question. The tool returns an answer for the customer using the relevant context."
     inputs = ["text"]
     outputs = ["text"]
 
-    def qa_chain(self):
-        prompt_template = """Use the following pieces of context to answer the question at the end.
-
-        {context}
-
-        Question: {question}
-        Answer:"""
-        PROMPT = PromptTemplate(
-            template=prompt_template, input_variables=["context", "question"]
-        )
-
-        class ContentHandler(LLMContentHandler):
-            content_type = "application/json"
-            accepts = "application/json"
-
-            def transform_input(self, prompt: str, model_kwargs: Dict) -> bytes:
-                # clean prompt
-                prompt = prompt.replace("\\n,", "").replace("\n", "").strip()
-
-                payload = {
-                    "prompt": prompt,
-                    "maxTokens": 2048,
-                    "temperature": 0.7,
-                    "numResults": 1,
-                }
-
-                payload = json.dumps(payload).encode("utf-8")
-                return payload
-
-            def transform_output(self, output: bytes) -> str:
-                response_json = json.loads(output.read().decode("utf-8"))
-                print(response_json)
-                return response_json["completions"][0]["data"]["text"]
-        
-        inference_component_name='meta-textgeneration-llama-3-8b-20240523-055253'
-        content_handler = ContentHandler()
-        llm=SagemakerEndpoint(
-                endpoint_name="jumpstart-dft-meta-textgeneration-l-20240523-055253",
-                region_name="us-east-1",
-                endpoint_kwargs={"InferenceComponentName":inference_component_name}, 
-                #endpoint_kwargs={f'InferenceComponentName": {inference_component_name}'},
-                #endpoint_kwargs={"CustomAttributes": "accept_eula=true,InferenceComponentName="+inference_component_name },
-                #credentials_profile_name="default",
-                content_handler=content_handler,
-        )
-        print(str(llm.endpoint_kwargs))
-        # Setup chain
-        chain = load_qa_chain(
-            llm,
-            prompt=PROMPT,
-        )
-
-        return chain
-
     def __call__(self, query):
-        chain = self.qa_chain()
+        custom_llm = Bedrock(
+            credentials_profile_name="bedrock-admin",
+            provider="cohere",
+            model_id="<Custom model ARN>",  # ARN like 'arn:aws:bedrock:...' obtained via provisioning the custom model
+            model_kwargs={"temperature": 1},
+            streaming=True,
+            callbacks=[StreamingStdOutCallbackHandler()],
+        )
+
         # Find docs
         embeddings = HuggingFaceEmbeddings()
         vectorstore = FAISS.load_local("local_index", embeddings, allow_dangerous_deserialization=True)
@@ -159,12 +117,14 @@ class AWSWellArchTool(Tool):
         for doc in docs:
             doc_sources_string += doc.metadata["source"] + "\n"
 
-        results = chain(
-            {"input_documents": docs, "question": query}, return_only_outputs=True
+        conversation = ConversationChain(
+            llm=custom_llm, verbose=True, memory=ConversationBufferMemory()
         )
-
-        resp_json = {"ans": str(results["output_text"]), "docs": doc_sources_string}
-
+        
+        result = conversation.predict(input={"input_documents": docs, "question": query})
+        
+        resp_json = {"ans": str(result), "docs": doc_sources_string}
+        
         return resp_json
 
 class CodeGenerationTool(Tool):
