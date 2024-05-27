@@ -1,6 +1,8 @@
 import streamlit as st
 import agent_setup  # Import your agent setup module here
 from agent_setup import start_agent
+from PIL import Image  # Import the Image class from PIL
+
 @st.cache_resource
 def load_agent():
     """
@@ -22,6 +24,26 @@ def sidebar() -> None:
     st.sidebar.markdown(
         "Agent AWS is an automated, AI-powered agent that uses HuggingFace Transformers paired with numerous different foundation models"
     )
+
+def display_response(answer) -> None:
+    """
+    Display the agent's response based on its type
+
+    Args:
+        answer: The agent's response
+    """
+    if isinstance(answer, str):
+        st.write(answer)  # Display as plain text
+    elif isinstance(answer, Image.Image):
+        st.image(answer)  # Display as an image
+    elif isinstance(answer, dict):
+        st.markdown(answer["ans"])  # Display markdown content
+        docs = answer["docs"].split("\n")
+        with st.expander("Resources"):
+            for doc in docs:
+                st.write(doc)
+    else:
+        st.code(answer)  # Display as code
 
 def app() -> None:
     """
@@ -49,9 +71,13 @@ def app() -> None:
             # Append agent's response to chat history
             st.session_state.chat_history.append({"role": "AI Agent", "content": answer})
 
-    # Display chat messages
+        # Display the response
+        display_response(answer)
+
+    # Show chat history on the right side
+    st.sidebar.subheader("Chat History")
     for message in st.session_state.chat_history:
-        st.write(f"{message['role']}: {message['content']}")
+        st.sidebar.write(f"{message['role']}: {message['content']}")
 
 def main() -> None:
     """
