@@ -106,7 +106,7 @@ class AWSWellArchTool(Tool):
         # Find docs
         embeddings = HuggingFaceEmbeddings()
         vectorstore = FAISS.load_local("local_index", embeddings, allow_dangerous_deserialization=True)
-        docs = vectorstore.nearest(embeddings.embed(query), n=5)
+        docs = vectorstore.similarity_search(query)
 
         doc_sources_string = ""
         for doc in docs:
@@ -122,6 +122,7 @@ class AWSWellArchTool(Tool):
         )
         prepared_prompt = prompt.format(context=doc_sources_string, question=query)
 
+        bedrock_model_id= "ai21.j2-ultra-v1" #set the foundation model
         # Invoke the Bedrock model
         try:
             body = json.dumps({
@@ -134,8 +135,9 @@ class AWSWellArchTool(Tool):
                 "presencePenalty": {"scale": 0 }, 
                 "frequencyPenalty": {"scale": 0 }
             })
-            response = bedrock.invoke_model(body=body, modelId=bedrock_model_id, accept='application/json', contentType='application/json') #send the payload to Bedrock
+            response = bedrock_client.invoke_model(body=body, modelId=bedrock_model_id, accept='application/json', contentType='application/json') #send the payload to Bedrock
             response_body = json.loads(response.get('body').read()) # read the response
+            print(response_body)
             response_text = response_body.get("completions")[0].get("data").get("text") #extract the text from the JSON response
 
             return response_text

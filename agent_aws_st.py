@@ -32,18 +32,23 @@ def display_response(answer) -> None:
     Args:
         answer: The agent's response
     """
+    print(type(answer))
     if isinstance(answer, str):
+        print("writing answer")
         st.write(answer)  # Display as plain text
     elif isinstance(answer, Image.Image):
+        print("writing as an image")
         st.image(answer)  # Display as an image
     elif isinstance(answer, dict):
+        print("display markdown content")
         st.markdown(answer["ans"])  # Display markdown content
         docs = answer["docs"].split("\n")
         with st.expander("Resources"):
             for doc in docs:
                 st.write(doc)
     else:
-        st.code(answer)  # Display as code
+        print("display as code")
+        st.write(answer)  # Display as code
 
 def app() -> None:
     """
