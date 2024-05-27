@@ -45,6 +45,33 @@ def display_response(answer) -> None:
     else:
         st.code(answer)  # Display as code
 
+def beautify_chat_history(chat_history) -> None:
+    """
+    Beautify the chat history by separating conversations and truncating long agent responses
+
+    Args:
+        chat_history: List of chat messages (user and agent)
+    """
+    user_messages = []
+    agent_messages = []
+    for message in chat_history:
+        if message["role"] == "user":
+            user_messages.append(message["content"])
+        elif message["role"] == "AI Agent":
+            # Truncate long agent responses
+            truncated_response = message["content"][:200] + "..." if len(message["content"]) > 200 else message["content"]
+            agent_messages.append(truncated_response)
+
+    # Display user messages
+    st.write("**User Messages:**")
+    for user_msg in user_messages:
+        st.write(f"- {user_msg}")
+
+    # Display agent responses
+    st.write("**Agent Responses:**")
+    for agent_resp in agent_messages:
+        st.write(f"- {agent_resp}")
+
 def app() -> None:
     """
     Controls the app flow
@@ -74,10 +101,8 @@ def app() -> None:
         # Display the response
         display_response(answer)
 
-    # Show chat history on the right side
-    st.sidebar.subheader("Chat History")
-    for message in st.session_state.chat_history:
-        st.sidebar.write(f"{message['role']}: {message['content']}")
+    # Beautify chat history
+    beautify_chat_history(st.session_state.chat_history)
 
 def main() -> None:
     """
