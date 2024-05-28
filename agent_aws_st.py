@@ -66,7 +66,7 @@ def app() -> None:
 
         # Generate agent's response
         with st.spinner("Generating..."):
-            answer = agent.run(chat_input, return_code = True)
+            answer = agent.run(chat_input)
             # Append agent's response to chat history
             st.session_state.chat_history.append({"role": "AI Agent", "content": answer})
 

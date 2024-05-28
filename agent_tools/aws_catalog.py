@@ -44,9 +44,9 @@ class AWSCatalogTool(Tool):
 
     def __call__(self, product_name: str):
         try:
-            let artifactId=''
+            #let artifactId=''
             if "S3" in product_name:
-                artifactId='pa-mhftvd4y7zkdg'
+                artifactId='pa-mhftvd4y7zkdg',
                 provisionparameter=[
                     {
                         'Key': 'string',
@@ -54,7 +54,8 @@ class AWSCatalogTool(Tool):
                     },
                 ]
             product = self.client.search_products(Filters={'FullTextSearch': [product_name]})['ProductViewSummaries'][0]
-            response = self.client.provision_product(ProductId=product['ProductId'], ProvisionedProductName=product['ProductId']+uuid.uuid4(), ProvisioningArtifactId=artifactId, ProvisioningParameters=)
+            provisioned_name = product['ProductId']+uuid.uuid4()
+            response = self.client.provision_product(ProductId=product['ProductId'], ProvisionedProductName=provisioned_name, ProvisioningArtifactId=artifactId, ProvisioningParameters=provisionparameter)
             self.product_id = response['RecordDetail']['ProvisionedProductId']
             status_response = self.wait_for_status(self.product_id, self.target_status)
             return status_response,response

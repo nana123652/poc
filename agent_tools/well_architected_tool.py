@@ -1,8 +1,9 @@
 import json
 import boto3
-from botocore.client import Config, BotoCoreError, ClientError
+#from botocore.client import Config, BotoCoreError, ClientError
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
+from transformers import Tool
 
 class AWSWellArchTool(Tool):
     name = "well_architected_tool"
@@ -48,10 +49,11 @@ class AWSWellArchTool(Tool):
             print(response_text)
             return {"ans": str(response_text), "docs": doc_sources_string}
 
-        except (BotoCoreError, ClientError) as error:
+        except Exception as error:
             print("Error:", error)
             raise error
 
     def __call__(self, query):
         result = self.qa_chain(query)
-        return {result}
+        print(result)
+        return result
