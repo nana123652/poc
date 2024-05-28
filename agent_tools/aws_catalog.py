@@ -1,6 +1,7 @@
 import boto3
 import time
 from transformers import Tool
+import uuid
 
 
 class AWSCatalogTool(Tool):
@@ -43,8 +44,17 @@ class AWSCatalogTool(Tool):
 
     def __call__(self, product_name: str):
         try:
+            let artifactId=''
+            if "S3" in product_name:
+                artifactId='pa-mhftvd4y7zkdg'
+                provisionparameter=[
+                    {
+                        'Key': 'string',
+                        'Value': 'string'
+                    },
+                ]
             product = self.client.search_products(Filters={'FullTextSearch': [product_name]})['ProductViewSummaries'][0]
-            response = self.client.provision_product(ProductId=product['ProductId'], ProvisionedProductName='re34rerersrq43444ss5', ProvisioningArtifactId='pa-mhftvd4y7zkdg')
+            response = self.client.provision_product(ProductId=product['ProductId'], ProvisionedProductName=product['ProductId']+uuid.uuid4(), ProvisioningArtifactId=artifactId, ProvisioningParameters=)
             self.product_id = response['RecordDetail']['ProvisionedProductId']
             status_response = self.wait_for_status(self.product_id, self.target_status)
             return status_response,response

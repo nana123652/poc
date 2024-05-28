@@ -22,7 +22,7 @@ def sidebar() -> None:
         use_column_width=True,
     )
     st.sidebar.markdown(
-        "Agent AWS is an automated, AI-powered agent that uses HuggingFace Transformers paired with numerous different foundation models"
+        "Agent AWS is an automated, AI-powered agent that uses HuggingFace Transformers paired with numerous different foundation models."
     )
 
 def display_response(answer) -> None:
@@ -32,23 +32,17 @@ def display_response(answer) -> None:
     Args:
         answer: The agent's response
     """
-    print(type(answer))
-    print(answer)
     if isinstance(answer, str):
-        print("writing answer")
         st.write(answer)  # Display as plain text
     elif isinstance(answer, Image.Image):
-        print("writing as an image")
         st.image(answer)  # Display as an image
     elif isinstance(answer, dict):
-        print("display markdown content")
         st.markdown(answer["ans"])  # Display markdown content
         docs = answer["docs"].split("\n")
         with st.expander("Resources"):
             for doc in docs:
                 st.write(doc)
     else:
-        print("display as code")
         st.write(answer)  # Display as code
 
 def app() -> None:
@@ -72,14 +66,12 @@ def app() -> None:
 
         # Generate agent's response
         with st.spinner("Generating..."):
-            answer = agent.run(chat_input)
-            print("enddss")
-            print(answer)
+            answer = agent.run(chat_input, return_code = True)
             # Append agent's response to chat history
             st.session_state.chat_history.append({"role": "AI Agent", "content": answer})
 
         # Display the response
-        display_response(answer["ans"])
+        display_response(answer)
 
     # Show chat history on the right side
     st.sidebar.subheader("Chat History")

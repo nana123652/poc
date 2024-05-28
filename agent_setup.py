@@ -3,46 +3,25 @@ import json
 import os
 import subprocess
 from typing import Dict
-
 import requests
-from langchain import PromptTemplate, SagemakerEndpoint
-from langchain.chains.question_answering import load_qa_chain
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.llms.sagemaker_endpoint import LLMContentHandler
-from langchain.prompts.prompt import PromptTemplate
-from langchain.vectorstores import FAISS
+
 from PIL import Image
+
 from transformers import Tool
 from transformers.tools import HfAgent
-from langchain_community.chat_models.bedrock import BedrockChat
-from langchain.retrievers.bedrock import AmazonKnowledgeBasesRetriever
-from langchain.prompts import PromptTemplate
-from langchain.chains import RetrievalQA
-import boto3
-import pprint
-from botocore.client import Config
-import json
-from model_downloads import HFModelDownloadsTool
-from aws_catalog import AWSCatalogTool
-from sagemaker_app import SageMakerRunningInstancesTool
-import boto3
-import os
-import json
-from botocore.exceptions import BotoCoreError, ClientError
 
-session = boto3.session.Session()
-print('Sessions region: ',session.region_name)
-region = 'us-east-1'
-bedrock_config = Config(connect_timeout=120, read_timeout=120, retries={'max_attempts': 0})
-bedrock_client = boto3.client('bedrock-runtime', region_name = region)
-bedrock_agent_client = boto3.client("bedrock-agent-runtime",
-                              config=bedrock_config, region_name = region)
 
-print(region)
+#Agent Tools
+from agent_tools.model_downloads import HFModelDownloadsTool
+from agent_tools.aws_catalog import AWSCatalogTool
+from agent_tools.sagemaker_app import SageMakerRunningInstancesTool
+from agent_tools.well_architected_tool import AWSWellArchTool
+
+
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 HUGGING_FACE_KEY = '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'
-modelId = 'anthropic.claude-3-sonnet-20240229-v1:0' # change this to use a different version from the model provider
-kb_id = "<knowledge base id>"
+
 
 
 sa_prompt = """
@@ -93,68 +72,6 @@ I will use the following
 
 
 
-class AWSWellArchTool(Tool):
-    name = "well_architected_tool"
-    description = "Use this tool for any AWS related question to help customers understand best practices on building on AWS. It will use the relevant context from the AWS Well-Architected Framework to answer the customer's query. The input is the customer's question. The tool returns an answer for the customer using the relevant context."
-    inputs = ["text"]
-    outputs = ["text"]
-
-    def __init__(self):
-        self.client = boto3.client('bedrock-runtime', region_name='us-east-1')
-
-    def qa_chain(self, query):
-        # Find docs
-        embeddings = HuggingFaceEmbeddings()
-        vectorstore = FAISS.load_local("local_index", embeddings, allow_dangerous_deserialization=True)
-        docs = vectorstore.similarity_search(query)
-
-        doc_sources_string = ""
-        for doc in docs:
-            doc_sources_string += doc.metadata["source"] + "\n"
-
-        # Prepare the prompt
-        prompt_template = """Use the following pieces of context to answer the question at the end.
-        {context}
-        Question: {question}
-        Answer:"""
-        prompt = PromptTemplate(
-            template=prompt_template, input_variables=["context", "question"]
-        )
-        prepared_prompt = prompt.format(context=doc_sources_string, question=query)
-
-        bedrock_model_id= "ai21.j2-ultra-v1" #set the foundation model
-        # Invoke the Bedrock model
-        try:
-            body = json.dumps({
-                "prompt": prepared_prompt, #AI21
-                "maxTokens": 1024, 
-                "temperature": 0, 
-                "topP": 0.5, 
-                "stopSequences": [], 
-                "countPenalty": {"scale": 0 }, 
-                "presencePenalty": {"scale": 0 }, 
-                "frequencyPenalty": {"scale": 0 }
-            })
-            response = bedrock_client.invoke_model(body=body, modelId=bedrock_model_id, accept='application/json', contentType='application/json') #send the payload to Bedrock
-            response_body = json.loads(response.get('body').read()) # read the response
-            #print(response_body)
-            response_text = response_body.get("completions")[0].get("data").get("text") #extract the text from the JSON response
-            print("...................................................................")
-            print(response_text)
-            
-            resp_json = {"ans": str(response_text), "docs": doc_sources_string}
-            print("......................start..............................")
-            print(resp_json)
-            print("......................end................................")
-            return resp_json
-
-        except (BotoCoreError, ClientError) as error:
-            print(error)
-            raise error
-
-    def __call__(self, query):
-        result = self.qa_chain(query)
-        return {"ans": result}
 
 
 class CodeGenerationTool(Tool):
@@ -317,13 +234,15 @@ class DiagramCreationTool(Tool):
 
 
 def start_agent(model_endpoint="https://nnu78adxthljszhh.us-east-1.aws.endpoints.huggingface.cloud",):
+   
     # Start tools
     well_arch_tool = AWSWellArchTool()
-    code_gen_tool = CodeGenerationTool()
-    diagram_gen_tool = DiagramCreationTool()
     aws_catalog= AWSCatalogTool()
     model_download = HFModelDownloadsTool()
     sagemaker_app = SageMakerRunningInstancesTool()
+
+    #code_gen_tool = CodeGenerationTool()
+    #diagram_gen_tool = DiagramCreationTool()
     print('Model powering transformer agent: ',model_endpoint)
 
     # Start Agent
