@@ -54,7 +54,7 @@ class AWSCatalogTool(Tool):
                     },
                 ]
             product = self.client.search_products(Filters={'FullTextSearch': [product_name]})['ProductViewSummaries'][0]
-            provisioned_name = product['ProductId']+uuid.uuid4()
+            provisioned_name = product['ProductId']+str(uuid.uuid4())
             response = self.client.provision_product(ProductId=product['ProductId'], ProvisionedProductName=provisioned_name, ProvisioningArtifactId=artifactId, ProvisioningParameters=provisionparameter)
             self.product_id = response['RecordDetail']['ProvisionedProductId']
             status_response = self.wait_for_status(self.product_id, self.target_status)

@@ -7,7 +7,7 @@ from transformers import Tool
 
 class AWSWellArchTool(Tool):
     name = "well_architected_tool"
-    description = "Use this tool any questions"
+    description = "Use this tool for any AWS related question to help customers understand best practices on building on AWS. It will use the relevant context from the AWS Well-Architected Framework to answer the customer's query. The input is the customer's question. The tool returns an answer for the customer using the relevant context."
     inputs = ["text"]
     outputs = ["text"]
 

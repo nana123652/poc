@@ -5,9 +5,9 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
 from transformers import Tool
 
-class AWSWellArchTool(Tool):
-    name = "well_architected_tool"
-    description = "Use this tool any questions"
+class QATool(Tool):
+    name = "question_answering_tool"
+    description = "Use this tool to answer any questions"
     inputs = ["text"]
     outputs = ["text"]
 
@@ -16,7 +16,7 @@ class AWSWellArchTool(Tool):
         self.client = boto3.client('bedrock-runtime', region_name='us-east-1')
 
     def qa_chain(self, query):
-        bedrock_model_id = "ai21.j2-ultra-v1"  # Set the foundation model https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html
+        bedrock_model_id = "ai21.j2-ultra-v1"  # AI21 Labs Set the foundation model https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html
         # Invoke the Bedrock model
         try:
             body = json.dumps({

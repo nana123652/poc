@@ -83,7 +83,7 @@ def main() -> None:
     Controls the flow of the Streamlit app
     """
     # Start the Streamlit app
-    st.title("Agent AWS")
+    st.title("Transformers AI Agent")
     st.subheader("Ask and Learn")
     app()
 
