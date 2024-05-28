@@ -20,7 +20,7 @@ from agent_tools.well_architected_tool import AWSWellArchTool
 
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-HUGGING_FACE_KEY = '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'
+HUGGING_FACE_KEY = ''
 
 
 

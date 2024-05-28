@@ -16,27 +16,11 @@ class AWSWellArchTool(Tool):
         self.client = boto3.client('bedrock-runtime', region_name='us-east-1')
 
     def qa_chain(self, query):
-        # Find relevant docs using embeddings
-        # RETRIEVAL
-        embeddings = HuggingFaceEmbeddings()
-        vectorstore = FAISS.load_local("local_index", embeddings, allow_dangerous_deserialization=True) #load a saved FAISS index. This is useful so you don't have to recreate it everytime you use it.
-        docs = vectorstore.similarity_search(query)
-
-        doc_sources_string = "\n".join(doc.metadata["source"] for doc in docs)
-
-        # AUGMENTATIOn
-        # Prepare the prompt
-        prompt_template = """Use the following pieces of context to answer the question at the end.
-        {context}
-        Question: {question}
-        Answer:"""
-        prompt = prompt_template.format(context=doc_sources_string, question=query)
-
         bedrock_model_id = "ai21.j2-ultra-v1"  # Set the foundation model https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html
         # Invoke the Bedrock model
         try:
             body = json.dumps({
-                "prompt": prompt,
+                "prompt": query,
                 "maxTokens": 1024,
                 "temperature": 0,
                 "topP": 0.5,
@@ -52,7 +36,7 @@ class AWSWellArchTool(Tool):
             response_text = response_body.get("completions")[0].get("data").get("text")
             print("Generated answer:")
             print(response_text)
-            return {"ans": str(response_text), "docs": doc_sources_string}
+            return str(response_text)
 
         except Exception as error:
             print("Error:", error)
