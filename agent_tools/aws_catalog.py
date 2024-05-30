@@ -18,7 +18,8 @@ class AWSCatalogTool(Tool):
 
     def get_provisioned_product_status(self, product_id):
         try:
-            response = self.client.describe_provisioned_status(Id=product_id)
+            response = self.client.describe_provisioned_product(Id=product_id)
+            print(response)
             return response['ProvisionedProductDetail']['Status']
         except Exception as e:
             print(f'An error occurred while getting status: {str(e)}')
@@ -28,7 +29,7 @@ class AWSCatalogTool(Tool):
         print(f'Target response to check: {product_id}')
         attempts = 0
         while attempts < max_attempts:
-            status = self.describe_provisioned_product(Id=product_id)
+            status = self.get_provisioned_product_status(product_id)
             print(f"Current status: {status}. Waiting for {target_status}...")
             if status == target_status:
                 print(f'Provisioned Product reached target status: {status}')
@@ -49,16 +50,32 @@ class AWSCatalogTool(Tool):
                 artifactId='pa-mhftvd4y7zkdg',
                 provisionparameter=[
                     {
-                        'Key': 'string',
-                        'Value': 'string'
+                        'Key': 'ProjectCode',
+                        'Value': 'A0'
                     },
+                     {
+                        'Key': 'FederatedUser',
+                        'Value': 'I200048353'
+                    },
+                      {
+                        'Key': 'CostCenter',
+                        'Value': '764'
+                    },
+                    {
+                        'Key': 'RequestedUser',
+                        'Value': 'Agent User'
+                    },
+                     {
+                        'Key': 'BucketName',
+                        'Value': 'agenttest01'
+                    }
                 ]
             product = self.client.search_products(Filters={'FullTextSearch': [product_name]})['ProductViewSummaries'][0]
             provisioned_name = product['ProductId']+str(uuid.uuid4())
-            response = self.client.provision_product(ProductId=product['ProductId'], ProvisionedProductName=provisioned_name, ProvisioningArtifactId=artifactId, ProvisioningParameters=provisionparameter)
+            response = self.client.provision_product(ProductId=product['ProductId'], ProvisionedProductName=provisioned_name, ProvisioningArtifactId='pa-mhftvd4y7zkdg', ProvisioningParameters=provisionparameter)
             self.product_id = response['RecordDetail']['ProvisionedProductId']
             status_response = self.wait_for_status(self.product_id, self.target_status)
-            return status_response,response
+            return status_response
         except Exception as e:
             print(f'An error occurred: {str(e)}')
             return f'An error occurred: {str(e)}'

@@ -20,7 +20,7 @@ from agent_tools.q_answer import QATool
 
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-HUGGING_FACE_KEY = ''
+HUGGING_FACE_KEY = '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'
 
 
 
@@ -60,8 +60,8 @@ I will use the Model Download Counter Tool because returns the most downloaded m
 Answer:
 
 ```py
-most_downloaded_model = model_download_counter(task="text-to-video")
-print(f"The most downloaded model for the 'text-to-video' task is {most_downloaded_model}.")
+response = model_download_counter(task="text-to-video")
+print(f"{response}")
 ```
 
 Task: "Generate running sagemaker instances"
@@ -125,6 +125,7 @@ def start_agent(model_endpoint="https://nnu78adxthljszhh.us-east-1.aws.endpoints
         "text_downloader",
         "image_generator",
         "video_generator",
+        "image_transformation"
     ]
 
     # Remove default tools
