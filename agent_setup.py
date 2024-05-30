@@ -20,7 +20,7 @@ from agent_tools.q_answer import QATool
 
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-HUGGING_FACE_KEY = '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'
+HUGGING_FACE_KEY = ''
 
 
 
